@@ -1,5 +1,4 @@
 % developed by: ANIL TAHA BALKIR
-git config --global core.whitespace cr-at-eol
 
 clc
 clear
