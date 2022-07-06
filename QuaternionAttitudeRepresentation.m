@@ -22,7 +22,8 @@ N_t      = 3.6*10^-10;                     %disturbance torque
 t        = 0.1;                            %sample time
 
 
-%% Aangular velocity calculations
+% Aangular velocity calculations
+
 for i=1:N-1
     
 wx(i+1,1)=wx(i)+t*(Jy-Jz)...
@@ -34,7 +35,8 @@ wz(i+1,1)=wz(i)+t*(Jx-Jy)...
 
 end
 
-%% Euler angles calculations
+% Euler angles calculations
+
 for i=1:N-1 
     
 roll(i+1,1)=roll(i)+t...
@@ -47,7 +49,8 @@ yaw(i+1,1)=yaw(i)+t*(wy(i,1)*sin(roll(i))+wz(i,1)*cos(roll(i)))...
 
 end
 
-%% Transformation matrix
+% Transformation matrix
+
 for i=1:N
     
 A(:,:,i)=[ cos(pitch(i))*cos(yaw(i)) cos(pitch(i))*sin(yaw(i)) -sin(pitch(i));
@@ -58,7 +61,7 @@ A(:,:,i)=[ cos(pitch(i))*cos(yaw(i)) cos(pitch(i))*sin(yaw(i)) -sin(pitch(i));
 
 end
 
-%% Quternions calculations
+% Quternions calculations
 
 for i=1:N
     
@@ -73,7 +76,7 @@ for i=1:N
     
 end
 
-%% Quaternion rates calculations
+% Quaternion rates calculations
 
 for i=1:N  
     
