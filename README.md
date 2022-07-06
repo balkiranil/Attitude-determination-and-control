@@ -17,7 +17,7 @@ The notations used in the assignment are given below.
 
 
 ## Quaternion Attitude Representation for Small Satellite Transformed from Euler Angles
-The subject of the program is to characterize the attitude dynamics of the Low Earth Orbit Satellite in terms of quaternions. Euler angles and angular velocity vectors taken from the first homework and quaternion are found and then quaternion rates are found with these values. There are 4 parameters in quaternions, one of which is scalar, others are vectoral.
+The subject of the program is to characterize the attitude dynamics of the Low Earth Orbit Satellite in terms of quaternions. Euler angles and angular velocity vectors taken from the first program and quaternion are found and then quaternion rates are found with these values. There are 4 parameters in quaternions, one of which is scalar, others are vectoral.
 
 
 ## Modified Rodrigues Parameters Representation for Small Satellite Using Quaternions
@@ -29,9 +29,9 @@ The sun model calculates the sun line in the inertial reference system and deter
 
 
 ## Modeling of the Sun Sensor Measurement in Satellite Body Frame
-Sun direction vector was determined in ECI frame in the previous homework. Besides, the
-transformation matrix from Orbit to Body frame was calculated in HW1.
-In this homework, the sun direction vector in body frame must be produced. First, ECI to Orbit
+Sun direction vector was determined in ECI frame in the previous program. Besides, the
+transformation matrix from Orbit to Body frame was calculated in program 1.
+In this program, the sun direction vector in body frame must be produced. First, ECI to Orbit
 transformation matrix must be calculated, then the Sun direction vector in Orbit frame can be
 determined. By using pre-calculated Orbit to Body transformation matrix, the Sun direction
 vector must be mapped from Orbit frame to Body frame and the noise must be added.
@@ -39,4 +39,10 @@ vector must be mapped from Orbit frame to Body frame and the noise must be added
 As the Sun direction vector is determined in ECI, the vectors have to be transformed into Orbit
 and then Body coordinates using the orbital parameters of the satellite.
 
+## Earth’s Magnetic Field Vector through the Orbit of the Satellite Using Dipole Model
+The subject of this program is the behavior of the magnetic field vector while sapcecraft's position changes through orbit. This data, that the magnetic field vector of Earth directly affects the attitude of the spacecraft.  
+As the satellite navigates along its orbit, magnetic field vector differs in a relevant way with the orbital parameters. If those parameters are known, then, magnetic field tensor vector that affects satellite can be shown as a function of time analytically. Note that, these terms are obtained in the orbit reference frame
+
+## Simulation of Magnetometer Measurements
+The subject of this program is to understand what magnetometer measurements depend on and some kind of measurement simulation is made.
 
