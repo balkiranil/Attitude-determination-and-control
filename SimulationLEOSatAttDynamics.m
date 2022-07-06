@@ -21,7 +21,7 @@ N        = 54000;                          %iteration number
 N_t      = 3.6*10^-10;                     %disturbance torque
 t        = 0.1;                            %sample time
 
-%% Angular velocity calculations
+% Angular velocity calculations
 
 for i=1:N-1
 
@@ -34,7 +34,7 @@ wz(i+1,1)=wz(i)+t*(Jx-Jy)...
     
 end
 
-%% Euler angles calculations
+% Euler angles calculations
 
 for i=1:N-1
 
@@ -48,7 +48,7 @@ yaw(i+1,1)=yaw(i)+t*(wy(i,1)*sin(roll(i))+wz(i,1)*cos(roll(i)))...
     
 end
 
-%% Transformation matrix
+% Transformation matrix
 
 for i=1:N   
 
@@ -60,7 +60,7 @@ A(:,:,i)=[ cos(pitch(i))*cos(yaw(i)) cos(pitch(i))*sin(yaw(i)) -sin(pitch(i));
     
 end
 
-%% Plot (Euler Angles)
+% Plot (Euler Angles)
 figure(1);
 sgtitle('Euler Angles Components')
 subplot(1,3,1)
@@ -78,7 +78,7 @@ x=0.1:0.1:5400;
 plot(x,yaw);
 xlabel('Time (s)');
 ylabel('Yaw angle(rad)');
-%% Plot (Angular Velocity)
+% Plot (Angular Velocity)
 figure(2);
 sgtitle('Angular Velocity Components')
 subplot(1,3,1);
