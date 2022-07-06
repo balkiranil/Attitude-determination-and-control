@@ -64,17 +64,15 @@ end
 figure(1);
 sgtitle('Euler Angles Components')
 subplot(1,3,1)
-x=0.1:0.1:5400;
+x=0.1:0.1:N/10;
 plot(x,roll);
 xlabel('Time (s)')
 ylabel('Roll angle(rad)')
 subplot(1,3,2);
-x=0.1:0.1:5400;
 plot(x,pitch);
 xlabel('Time (s)');
 ylabel('Pitch angle(rad)');
 subplot(1,3,3);
-x=0.1:0.1:5400;
 plot(x,yaw);
 xlabel('Time (s)');
 ylabel('Yaw angle(rad)');
@@ -82,17 +80,14 @@ ylabel('Yaw angle(rad)');
 figure(2);
 sgtitle('Angular Velocity Components')
 subplot(1,3,1);
-x=0.1:0.1:5400;
 plot(x,wx);
 xlabel('Time (s)')
 ylabel('X comp. of angular velocity (rad/s)') 
 subplot(1,3,2);
-x=0.1:0.1:5400;
 plot(x,wy);
 xlabel('Time (s)');
 ylabel('Y comp. of angular velocity (rad/s)'); 
 subplot(1,3,3);
-x=0.1:0.1:5400;
 plot(x,wz);
 xlabel('Time (s)');
 ylabel('Z comp. of angular velocity (rad/s)');
