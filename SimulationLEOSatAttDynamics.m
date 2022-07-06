@@ -49,8 +49,8 @@ end
 for i=1:N   
 
 A(:,:,i)=[cos(pitch(i))*cos(yaw(i)) cos(pitch(i))*sin(yaw(i)) -sin(pitch(i));
- -cos(roll(i))*sin(yaw(i))+sin(roll(i))*sin(pitch(i))*cos(yaw(i)) cos(roll(i))*cos(yaw(i))+sin(roll(i))*sin(pitch(i))*sin(yaw(i)) sin(roll(i))*cos(pitch(i));
- sin(roll(i))*sin(yaw(i))+cos(roll(i))*sin(pitch(i))*cos(yaw(i)) -sin(roll(i))*cos(yaw(i))+cos(roll(i))*sin(pitch(i))*sin(yaw(i)) cos(roll(i))*cos(pitch(i))];
+-cos(roll(i))*sin(yaw(i))+sin(roll(i))*sin(pitch(i))*cos(yaw(i)) cos(roll(i))*cos(yaw(i))+sin(roll(i))*sin(pitch(i))*sin(yaw(i)) sin(roll(i))*cos(pitch(i));
+sin(roll(i))*sin(yaw(i))+cos(roll(i))*sin(pitch(i))*cos(yaw(i)) -sin(roll(i))*cos(yaw(i))+cos(roll(i))*sin(pitch(i))*sin(yaw(i)) cos(roll(i))*cos(pitch(i))];
     
 end
 
