@@ -38,13 +38,9 @@ end
 
 for i=1:N-1
 
-roll(i+1,1)=roll(i)+t...
-    *((wy(i,1)*sin(roll(i))+wz(i,1)*cos(roll(i)))*tan(pitch(i))...
-    +wx(i,1));
-pitch(i+1,1)=pitch(i)+t*(wy(i,1)*cos(roll(i))-wz(i,1)*sin(roll(i))...
-    +w_orbit);
-yaw(i+1,1)=yaw(i)+t*(wy(i,1)*sin(roll(i))+wz(i,1)*cos(roll(i)))...
-    *sec(pitch(i));
+roll(i+1,1)=roll(i)+t*((wy(i,1)*sin(roll(i))+wz(i,1)*cos(roll(i)))*tan(pitch(i))+wx(i,1));
+pitch(i+1,1)=pitch(i)+t*(wy(i,1)*cos(roll(i))-wz(i,1)*sin(roll(i))+w_orbit);
+yaw(i+1,1)=yaw(i)+t*(wy(i,1)*sin(roll(i))+wz(i,1)*cos(roll(i)))*sec(pitch(i));
     
 end
 
@@ -53,10 +49,8 @@ end
 for i=1:N   
 
 A(:,:,i)=[ cos(pitch(i))*cos(yaw(i)) cos(pitch(i))*sin(yaw(i)) -sin(pitch(i));
-    -cos(roll(i))*sin(yaw(i))+sin(roll(i))*sin(pitch(i))*cos(yaw(i)) cos(roll(i))...
-    *cos(yaw(i))+sin(roll(i))*sin(pitch(i))*sin(yaw(i)) sin(roll(i))*cos(pitch(i));
-    sin(roll(i))*sin(yaw(i))+cos(roll(i))*sin(pitch(i))*cos(yaw(i)) -sin(roll(i))...
-    *cos(yaw(i))+cos(roll(i))*sin(pitch(i))*sin(yaw(i)) cos(roll(i))*cos(pitch(i))];
+    -cos(roll(i))*sin(yaw(i))+sin(roll(i))*sin(pitch(i))*cos(yaw(i)) cos(roll(i))*cos(yaw(i))+sin(roll(i))*sin(pitch(i))*sin(yaw(i)) sin(roll(i))*cos(pitch(i));
+    sin(roll(i))*sin(yaw(i))+cos(roll(i))*sin(pitch(i))*cos(yaw(i)) -sin(roll(i))*cos(yaw(i))+cos(roll(i))*sin(pitch(i))*sin(yaw(i)) cos(roll(i))*cos(pitch(i))];
     
 end
 
