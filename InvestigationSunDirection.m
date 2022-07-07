@@ -1,5 +1,10 @@
+% developed by: ANIL TAHA BALKIR
+
 clc
 clear
+
+disp("Powered by Javelin Tech.")
+disp("Developed by ANIL TAHA BALKIR")
 
 n= 9;
 period= 5400;
