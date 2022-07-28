@@ -3,8 +3,6 @@
 clc
 clear
 
-disp("Powered by Javelin Tech.")
-disp("Developed by ANIL TAHA BALKIR")
 
 n        = 9;                              %given random number 
 roll(1)  = -0.01-0.002*n;                  %initial value of roll angle 
