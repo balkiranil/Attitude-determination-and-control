@@ -1,8 +1,9 @@
+% developed by: ANIL TAHA BALKIR
+
 
 clc
 clear
 
-disp("Developed by ANIL TAHA BALKIR")
 
 n= 9;
 period= 5400;
