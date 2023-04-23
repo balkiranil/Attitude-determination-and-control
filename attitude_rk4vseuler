@@ -1,0 +1,370 @@
+clc;
+clear;
+
+% Parameters
+n = 9;
+N_s = 6000;
+dt = 1;
+I1 = 2.1e-3;
+I2 = 2e-3;
+I3 = 1.9e-3;
+roll0 = -0.01 - 0.002*n;
+pitch0 = 0.01 - 0.002*n;
+yaw0 = -0.005 - 0.002*n;
+wx0 = -0.002 - 0.0001*n;
+wy0 = 0.003 - 0.0001*n;
+wz0 = -0.004 - 0.0001*n;
+eps=1e-09;
+
+% Pre-allocate arrays
+yaw = zeros(N_s, 1);
+pitch = zeros(N_s, 1);
+roll = zeros(N_s, 1);
+wx = zeros(N_s, 1);
+wy = zeros(N_s, 1);
+wz = zeros(N_s, 1);
+p=zeros(N_s,1);
+r=zeros(N_s,1);
+y=zeros(N_s,1);
+T_321=zeros(3,3,N_s);
+dcm_321=zeros(3,3,N_s);
+dcm_313=zeros(3,3,N_s);
+n_v=zeros(1,N_s);
+rk4_v=zeros(1,N_s);
+yaw_v=zeros(1,N_s);
+pitch_v=zeros(1,N_s);
+roll_v=zeros(1,N_s);
+yawrk4_v=zeros(1,N_s);
+pitchrk4_v=zeros(1,N_s);
+rollrk4_v=zeros(1,N_s);
+
+% Initial conditions
+roll(1) = roll0;
+pitch(1) = pitch0;
+yaw(1) = yaw0;
+wx(1) = wx0;
+wy(1) = wy0;
+wz(1) = wz0;
+L1=3.6e-10;
+L2=3.6e-10;
+L3=3.6e-10;
+
+% Initial conditions
+x0 = [yaw0; pitch0; roll0; wx0; wy0; wz0];
+
+% Solve the ODE using ode45
+[T, X] = ode45(@(t,x) quadEOM(t, x, I1, I2, I3, L1, L2, L3), 0:dt:(N_s-1)*dt, x0);
+
+
+for i=1:N_s-1
+
+    % Transformation matrix 3-2-1 Euler Sequence
+
+    T_321(:,:,i) = 1/cos(pitch(i)) * [0 sin(roll(i)) cos(roll(i)); 
+                    0 cos(roll(i))*cos(pitch(i)) -sin(roll(i))*cos(pitch(i)); 
+                    cos(pitch(i)) sin(roll(i))*sin(pitch(i)) cos(roll(i))*sin(pitch(i))];
+    
+    % Calculate Euler angles and Angular velocity
+    
+    deuler = T_321(:,:,i)*[wx(i);wy(i);wz(i)];
+
+    wxdot = -(I3-I2)*wy(i)*wz(i)/I1 + L1/I1;
+    wydot = -(I1-I3)*wz(i)*wx(i)/I2 + L2/I2;
+    wzdot = -(I2-I1)*wx(i)*wy(i)/I3 + L3/I3;
+
+    % Update Angular Velocity & Euler Angles Euler method
+
+    wx(i+1) = wx(i) + wxdot*dt;
+    wy(i+1) = wy(i) + wydot*dt;
+    wz(i+1) = wz(i) + wzdot*dt;
+
+    yaw(i+1) = yaw(i) + deuler(1)*dt;
+    pitch(i+1) = pitch(i) + deuler(2)*dt;
+    roll(i+1) = roll(i) + deuler(3)*dt;
+
+
+end
+
+for i=1:N_s
+
+    % Direct cosine matrix 3-2-1 Euler Sequence
+
+    dcm_321(:,:,i) = [cos(pitch(i))*cos(roll(i)), cos(pitch(i))*sin(roll(i)), -sin(pitch(i)); 
+     sin(yaw(i))*sin(pitch(i))*cos(roll(i))-cos(yaw(i))*sin(roll(i)), sin(yaw(i))*sin(pitch(i))*sin(roll(i))+cos(yaw(i))*cos(roll(i)), sin(yaw(i))*cos(pitch(i)); 
+     cos(yaw(i))*sin(pitch(i))*cos(roll(i))+sin(yaw(i))*sin(roll(i)), cos(yaw(i))*sin(pitch(i))*sin(roll(i))-sin(yaw(i))*cos(roll(i)), cos(yaw(i))*cos(pitch(i))];
+
+    % Direct cosine matrix 3-1-3 Euler Sequence
+    
+    dcm_313(:,:,i) = [cos(yaw(i))*cos(roll(i))-sin(yaw(i))*cos(pitch(i))*sin(roll(i)),...
+       cos(yaw(i))*sin(roll(i))+sin(yaw(i))*cos(pitch(i))*cos(roll(i)),...
+       sin(yaw(i))*sin(pitch(i));...
+       -sin(yaw(i))*cos(roll(i))-cos(yaw(i))*cos(pitch(i))*sin(roll(i)),...
+       -sin(yaw(i))*sin(roll(i))+cos(yaw(i))*cos(pitch(i))*cos(roll(i)),...
+       cos(yaw(i))*sin(pitch(i));...
+       sin(pitch(i))*sin(roll(i)), -sin(pitch(i))*cos(roll(i)), cos(pitch(i))];
+
+    % Extract roll, pitch, and yaw from 321 DCM by using 313 transformation
+    % process
+
+    % Check for singularity
+    if abs(dcm_321(3,1,i)) < eps && abs(dcm_321(3,2,i)) < eps
+        r(i) = 0; % Set arbitrary value for roll
+        p(i) = pi/2*sign(dcm_321(3,1,i)); % Set pitch to +90 or -90
+        y(i) = atan2(-dcm_321(1,2,i), dcm_321(1,1,i)); % Calculate yaw using atan2
+    else
+        p(i) = acos(dcm_321(3,3,i)); % Calculate pitch normally
+        r(i) = atan2(dcm_321(3,1,i), -dcm_321(3,2,i)); % Calculate roll using atan2
+        y(i) = atan2(dcm_321(1,3,i), dcm_321(2,3,i)); % Calculate yaw using atan2
+    end
+
+
+end
+
+% Convert angles from radians to degrees and keep them in the range of -180 to 180 degrees
+
+yaw = mod(rad2deg(yaw), 360);
+yaw(yaw > 180) = yaw(yaw > 180) - 360;
+pitch = mod(rad2deg(pitch), 360);
+pitch(pitch > 180) = pitch(pitch > 180) - 360;
+roll = mod(rad2deg(roll), 360);
+roll(roll > 180) = roll(roll > 180) - 360;
+
+r = mod(rad2deg(r), 360);
+r(r > 180) = r(r > 180) - 360;
+p = mod(rad2deg(p), 360);
+p(p > 180) = p(p > 180) - 360;
+y = mod(rad2deg(y), 360);
+y(y > 180) = y(y > 180) - 360;
+
+% Extract the Euler angles and angular rates from the solution
+
+yaw_rk4 = X(:,1);
+pitch_rk4 = X(:,2);
+roll_rk4 = X(:,3);
+wx_rk4 = X(:,4);
+wy_rk4 = X(:,5);
+wz_rk4 = X(:,6);
+
+
+% Convert angles from radians to degrees and keep them in the range of -180 to 180 degrees
+
+yaw_rk4 = mod(rad2deg(yaw_rk4), 360);
+yaw_rk4(yaw_rk4 > 180) = yaw_rk4(yaw_rk4 > 180) - 360;
+pitch_rk4 = mod(rad2deg(pitch_rk4), 360);
+pitch_rk4(pitch_rk4 > 180) = pitch_rk4(pitch_rk4 > 180) - 360;
+roll_rk4 = mod(rad2deg(roll_rk4), 360);
+roll_rk4(roll_rk4 > 180) = roll_rk4(roll_rk4 > 180) - 360;
+
+wx = rad2deg(wx);
+wy = rad2deg(wy);
+wz = rad2deg(wz);
+wx_rk4 = rad2deg(wx_rk4);
+wy_rk4 = rad2deg(wy_rk4);
+wz_rk4 = rad2deg(wz_rk4);
+
+for i=1:N_s
+
+    n_v(i) = sqrt(roll(i)^2+pitch(i)^2+yaw(i)^2);
+    rk4_v(i) = sqrt(roll_rk4(i)^2+pitch_rk4(i)^2+yaw_rk4(i)^2);
+
+    yaw_v(i)=yaw(i)/n_v(i);
+    pitch_v(i)=pitch(i)/n_v(i);
+    roll_v(i)=roll(i)/n_v(i);
+
+    yawrk4_v(i)=yaw_rk4(i)/rk4_v(i);
+    pitchrk4_v(i)=pitch_rk4(i)/rk4_v(i);
+    rollrk4_v(i)=roll_rk4(i)/rk4_v(i);
+end
+
+% Difference between RK4 and Euler Methods
+
+d1 = yaw_rk4 - yaw;
+d2 = pitch_rk4 - pitch;
+d3 = roll_rk4 - roll;
+
+for i=1:6000
+    d3(i) = roll_rk4(i) - roll(i);
+    if d3(i)>180
+        d3(i)= d3(i)-360;
+    end
+end
+for i=1:6000
+    d1(i) = yaw_rk4(i) - yaw(i);
+    if d1(i)>180
+        d1(i)= d1(i)-360;
+    end
+end
+for i=1:6000
+    d2(i) = pitch_rk4(i) - pitch(i);
+    if d2(i)>180
+        d2(i)= d2(i)-360;
+    end
+end
+
+% Plot angles (3-2-1)
+figure(1);
+sgtitle('Attitude Profile Euler Method 3-2-1 Sequence')
+subplot(3,1,1)
+plot(yaw, 'r');
+grid on;
+legend('Yaw');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,2)
+plot(pitch, 'g');
+grid on;
+legend('Pitch');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,3)
+plot(roll, 'b');
+grid on;
+legend('Roll');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+% Plot Angular velocities
+figure(2);
+plot(wx, 'r');
+hold on;
+plot(wy, 'g');
+plot(wz, 'b');
+legend('Wx', 'Wy', 'Wz');
+xlabel('Time (s)');
+ylabel('Angle (deg/sec)');
+title('Angular Velocity Euler Method');
+% Plot angles (3-1-3)
+figure(3);
+sgtitle('Attitude Profile Euler Method 3-1-3 Sequence')
+subplot(3,1,1)
+plot(r, 'r');
+grid on;
+legend('Roll');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,2)
+plot(p, 'g');
+grid on;
+legend('Pitch');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,3)
+plot(y, 'b');
+grid on;
+legend('Yaw');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+% Plot angles
+figure(4);
+sgtitle('Attitude Profile RK4 Method 3-2-1 Sequence')
+subplot(3,1,1)
+plot(yaw_rk4, 'r');
+grid on;
+legend('YawRK4');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,2)
+plot(pitch_rk4, 'g');
+grid on;
+legend('PitchRK4');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,3)
+plot(roll_rk4, 'b');
+grid on;
+legend('RollRK4');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+% Plot Angular velocities
+figure(5);
+plot(wx_rk4, 'r');
+hold on;
+plot(wy_rk4, 'g');
+plot(wz_rk4, 'b');
+legend('WxRK4', 'WyRK4', 'WzRK4');
+xlabel('Time (s)');
+ylabel('Angle (deg/sec)');
+title('Angular Velocity RK4 Method');
+% Plot angles
+figure(6);
+sgtitle('Difference between RK4 and Euler Method')
+subplot(3,1,1)
+plot(d1, 'r');
+grid on;
+legend('Yaw Difference');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,2)
+plot(d2, 'g');
+grid on;
+legend('Pitch Difference');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,3)
+plot(d3, 'b');
+grid on;
+legend('Roll Difference');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+% Plot angles
+figure(7);
+sgtitle('Attitude Profile RK4 and Euler Method')
+subplot(3,1,1)
+plot(yaw, 'r');
+hold on;
+plot(yaw_rk4,'g');
+grid on;
+legend('Yaw','Yawrk4');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,2)
+plot(pitch, 'r');
+hold on;
+plot(pitch_rk4,'g');
+grid on;
+legend('Pitch','Pitchrk4');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+subplot(3,1,3)
+plot(roll, 'r');
+hold on;
+plot(roll_rk4,'g');
+grid on;
+legend('Roll','Rollrk4');
+xlabel('Time (s)');
+ylabel('Angle (deg)');
+
+
+function xdot = quadEOM(t, x, I1, I2, I3, L1, L2, L3)
+
+    % Extract the state variables
+    yaw = x(1);
+    pitch = x(2);
+    roll = x(3);
+    wx = x(4);
+    wy = x(5);
+    wz = x(6);
+    % Transformation matrix 3-2-1 Euler Sequence
+
+    T_321 = 1/cos(pitch) * [0 sin(roll) cos(roll); 
+                    0 cos(roll)*cos(pitch) -sin(roll)*cos(pitch); 
+                    cos(pitch) sin(roll)*sin(pitch) cos(roll)*sin(pitch)];
+    
+    % Calculate Euler angles and Angular velocity
+    
+    d_euler = T_321*[wx;wy;wz];
+    % Compute the derivatives of the state variables
+    yaw_dot = d_euler(1);
+    pitch_dot = d_euler(2);
+    roll_dot = d_euler(3);
+
+
+    wxdot = -(I3-I2)*wy*wz/I1 + L1/I1;
+    wydot = -(I1-I3)*wz*wx/I2 + L2/I2;
+    wzdot = -(I2-I1)*wx*wy/I3 + L3/I3;
+
+    % Return the derivatives as a column vector
+    xdot = [yaw_dot; pitch_dot; roll_dot; wxdot; wydot; wzdot];
+end
+
+
+
