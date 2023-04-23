@@ -1,0 +1,314 @@
+clear;
+clc;
+
+n           = 9;
+e           = 0;                            % Eccentricity
+rEarth      = 6.3712e3;                     % Earth s radius in km
+r           = (rEarth + 800 + 5*n)*1e3;     % The distance between the center of mass of the satellite and the Earth in meters
+mu          = 3.98601e14;                   % Standard gravitational parameter of Earth in m^3/s^2
+i           = 80 + 0.5*n;                   % Inclination in degrees
+raan        = 2*n;                          % Right ascension of the ascending node in degrees
+argofper    = 0;                            % Argument of perigee
+w_e         = 7.29212e-5;                   % Earth_s rotational velocity in rad/s
+Tp          = 2*pi*sqrt(r^3/mu);            % Period of the satellite's orbit in seconds
+omega_p     = 2*pi/Tp;                      % Mean motion of the satellite in radians/second
+N_ite       = 6000;                         % Number of samples
+dt          = 1;                            % Sampling time in seconds
+
+
+% Convert deg to rad
+
+i           = deg2rad(i);
+raan        = deg2rad(raan);
+argofper    = deg2rad(argofper);
+
+% Pre-allocation matrix
+
+x           = zeros(N_ite, 1);
+y           = zeros(N_ite, 1);
+z           = zeros(N_ite, 1);
+alt         = zeros(N_ite,1);
+R_ECI       = zeros(3,1,N_ite);
+XYZ_ecef    = zeros(3,1,N_ite);
+XYZ_eci     = zeros(3,1,N_ite);
+XYZ         = zeros(3,1,N_ite);
+XYZ_orbit   = zeros(3,1,N_ite);
+XYZ_orbit_w = zeros(3,1,N_ite);
+R_ECI_ECEF  = zeros(3,3,N_ite);
+R_ECEF      = zeros(3,1,N_ite);
+lon         = zeros(1,N_ite);
+lat         = zeros(1,N_ite);
+argoflat    = zeros(1,N_ite);
+
+
+% True anomaly
+
+v           = 0:2*pi/Tp:2*pi;
+
+% Angle in 1 sec
+
+theta_E = linspace(0,2*pi,2*pi/w_e);
+
+% The position vector for N samples
+
+for t = 1:N_ite
+
+    x(t) = r*(cos(argofper+v(t))*cos(raan)-sin(argofper+v(t))*sin(raan)*cos(i));
+    y(t) = r*(cos(argofper+v(t))*sin(raan)+sin(argofper+v(t))*cos(raan)*cos(i));
+    z(t) = r*(sin(argofper+v(t))*sin(i));
+    
+    R_ECI(:,:,t) = [x(t),y(t),z(t)];
+
+    % Transformation matrix ECI to ECEF
+
+    R_ECI_ECEF(:,:,t) = [cos(theta_E(t)) sin(theta_E(t)) 0;...
+    -sin(theta_E(t)) cos(theta_E(t)) 0; 0 0 1];
+    R_ECEF(:,:,t) = R_ECI_ECEF(:,:,t)*R_ECI(:,:,t);
+
+    % Convert position vectors to spherical coordinates
+    
+    alt(t) = sqrt(x(t)^2+y(t)^2+z(t)^2) - rEarth*1e3;
+    lon(t) = atan2(R_ECEF(2,:,t),R_ECEF(1,:,t));
+    lat(t) = atan2(R_ECEF(3,:,t), sqrt(R_ECEF(1,:,t)^2 + R_ECEF(2,:,t)^2));
+
+end
+
+% Convert longitude from radians to degrees
+
+lon = lon * 180/pi;
+
+% Adjust longitude to the range [-180, 180] degrees
+
+if (lon > 180)
+    lon = lon - 360;
+elseif (lon < -180)
+    lon = lon + 360;
+end
+
+% Adjust latitude to the range [-90, 90] degrees
+
+lat = lat * 180/pi;
+
+if (lat > 90)
+    lat = 180 - lat;
+elseif (lat < -90)
+    lat = -180 - lat;
+end
+
+% Magnetic Field in nT igrfmagm
+
+for t=1:N_ite
+
+    % Compute the magnetic field in the IGRF reference frame
+
+     [XYZ(:,:,t),H,D,I,F] = igrfmagm(alt(t),lat(t),lon(t),decyear(2023,4,15),13);
+
+    % Convert the magnetic field to the ECEF reference frame
+
+     XYZ_ecef(:,:,t)=ned2ecef(lat(t), lon(t))*XYZ(:,:,t);
+
+    % Convert the magnetic field to the ECI reference frame
+
+     XYZ_eci (:,:,t) = inv(R_ECI_ECEF(:,:,t))*XYZ_ecef(:,:,t);
+
+    % Convert the magnetic field to the orbit frame
+
+     argoflat(t)    = argofper + v(t);
+     XYZ_orbit(:,:,t) = eci2orbit(argoflat(t), i, raan)*XYZ_eci(:,:,t);
+
+
+end
+
+% Magnetic Field in nT wrldmagm
+
+for t=1:N_ite
+
+    % Compute the magnetic field in the WMS reference frame
+
+     [XYZ_w(:,:,t),H,D,I,F] = wrldmagm(alt(t),lat(t),lon(t),decyear(2023,4,15),'2020');
+    
+     % Convert the magnetic field to the ECEF reference frame
+
+     XYZ_ecef_w(:,:,t)=ned2ecef(lat(t), lon(t))*XYZ_w(:,:,t);
+
+    % Convert the magnetic field to the ECI reference frame
+
+     XYZ_eci_w (:,:,t) = inv(R_ECI_ECEF(:,:,t))*XYZ_ecef_w(:,:,t);
+    
+     % Convert the magnetic field to the orbit frame
+
+     argoflat(t)    = argofper + v(t);
+     XYZ_orbit_w(:,:,t) = eci2orbit(argoflat(t), i, raan)*XYZ_eci_w(:,:,t);
+
+
+end
+
+% the differences between the IGRF and WMM models
+
+igrfx=XYZ_orbit(1,:);
+igrfy=XYZ_orbit(2,:);
+igrfz=XYZ_orbit(3,:);
+
+wwx=XYZ_orbit_w(1,:);
+wwy=XYZ_orbit_w(2,:);
+wwz=XYZ_orbit_w(3,:);
+
+for i=1:length(wwx)
+    d1(i)=igrfx(i)-wwx(i);
+    d2(i)=igrfy(i)-wwy(i);
+    d3(i)=igrfz(i)-wwz(i);
+end
+
+% Plotting the satellite position in 3D
+figure(1);
+plot3(x,y,z)
+xlabel('x (m)')
+ylabel('y (m)')
+zlabel('z (m)')
+title('Satellite Position in 3D')
+
+% Plotting the satellite position in the x-y plane
+figure(2);
+plot(x,y)
+xlabel('x (m)')
+ylabel('y (m)')
+title('Satellite Position in the x-y Plane')
+
+% Plotting the satellite position in the x-z plane
+figure(3);
+plot(x,z)
+xlabel('x (m)')
+ylabel('z (m)')
+title('Satellite Position in the x-z Plane')
+
+% Plotting the satellite position in the y-z plane
+figure(4);
+plot(y,z)
+xlabel('y (m)')
+ylabel('z (m)')
+title('Satellite Position in the y-z Plane')
+
+tt= 0:1:N_ite-1;
+% Plot altitude vs time
+figure(5);
+plot(tt,alt,'LineWidth',2)
+xlabel('Time (s)')
+ylabel('Altitude (m)')
+grid on
+title('Altitude')
+
+
+% Plot longitude-latitude vs time
+figure(6);
+plot(tt,lon,'LineWidth',2)
+hold on
+plot(tt,lat,'LineWidth',2)
+xlabel('Time (s)')
+ylabel('Longitude/Latitude (deg)')
+legend('Longitude','Latitude')
+grid on
+title('Longitude/Latitude')
+
+
+% % magnetic
+figure(7);
+subplot(3,1,1)
+plot(igrfx, 'r');
+grid on;
+xlabel('Time, s');
+ylabel('B_x, nT');
+subplot(3,1,2)
+plot(igrfy, 'g');
+grid on;
+xlabel('Time, s');
+ylabel('B_y Tesla');
+subplot(3,1,3)
+plot(igrfz, 'b');
+grid on;
+xlabel('Time, s');
+ylabel('B_z, nT');
+sgtitle('Magnetic Field Components (IGRF)')
+% 
+% %%
+figure(8);
+subplot(3,1,1)
+plot(wwx, 'r');
+grid on;
+xlabel('Time, s');
+ylabel('B_x, nT');
+subplot(3,1,2)
+plot(wwy, 'g');
+grid on;
+xlabel('Time, s');
+ylabel('B_y, nT');
+subplot(3,1,3)
+plot(wwz, 'b');
+grid on;
+xlabel('Time, s');
+ylabel('B_z, nT');
+sgtitle('Magnetic Field Components (WMM2020)')
+
+
+figure(9);
+subplot(3,1,1)
+plot(d1, 'r');
+grid on;
+xlabel('Time, s');
+ylabel('B_x, nT');
+subplot(3,1,2)
+plot(d2, 'g');
+grid on;
+xlabel('Time, s');
+ylabel('B_y, nT');
+subplot(3,1,3)
+plot(d3, 'b');
+grid on;
+xlabel('Time, s');
+ylabel('B_z, nT');
+sgtitle('Magnetic Field Differences');
+
+
+function T = ned2ecef(lat, lon)
+% NED2ECEF calculates the transformation matrix from NED to ECEF coordinates
+%
+%   T = NED2ECEF(lat, lon) calculates the transformation matrix T from
+%   NED to ECEF coordinates based on the input latitude (lat) and longitude (lon)
+%   in degrees.
+%
+%   The function returns a 3x3 transformation matrix T.
+
+% Convert latitude and longitude to radians
+lat = deg2rad(lat);
+lon = deg2rad(lon);
+
+% Calculate the transformation matrix elements
+T11 = -sin(lat) * cos(lon);
+T12 = -sin(lon);
+T13 = -cos(lat) * cos(lon);
+T21 = -sin(lat) * sin(lon);
+T22 = cos(lon);
+T23 = -cos(lat) * sin(lon);
+T31 = cos(lat);
+T32 = 0;
+T33 = -sin(lat);
+
+% Construct the transformation matrix
+T = [T11 T12 T13;
+     T21 T22 T23;
+     T31 T32 T33];
+end
+
+function T_oi = eci2orbit(u, i, Omega)
+    u=rad2deg(u);
+    i=rad2deg(i);
+    Omega=rad2deg(Omega);
+    T_oi = [-sind(u)*cosd(Omega)-cosd(u)*cosd(i)*sind(Omega),...
+            -sind(u)*sind(Omega)+cosd(u)*cosd(i)*cosd(Omega),...
+            cosd(u)*sind(i);...
+            -sind(i)*sind(Omega), sind(i)*cosd(Omega), -cosd(i);...
+            cosd(u)*cosd(Omega)+sind(u)*cosd(i)*sind(Omega),...
+            -cosd(u)*sind(Omega)-sind(u)*cosd(i)*cosd(Omega),...
+            -sind(u)*sind(i)];
+    
+end
+
